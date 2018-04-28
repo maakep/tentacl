@@ -22,8 +22,7 @@ app.get("/", (req, res) => {
 });
 
 shell.cd(process.argv[2]);
-var processId = shell.exec("npm run server &", {silent: true}).stdout;
-console.log(processId);
+var serverProcess = shell.exec("npm run server &");
 app.post("/deploy", (req, res) => {
     var notTag = req.body.ref_type !== "tag";
     console.log(req.body.ref_type);
@@ -40,10 +39,10 @@ app.post("/deploy", (req, res) => {
         return;
     }
 
-    shell.exec("kill " + processId);
+    serverProcess.kill();
     if (shell.exec("git pull").code === 0) {
         if (shell.exec("npm run build").code === 0) {
-            processId = shell.exec("npm run server &").stdout;
+            serverProcess = shell.exec("npm run server &");
             console.log(processId);
             res.sendStatus(200);
             return;
