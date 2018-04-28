@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 
 shell.cd(process.argv[2]);
 //var serverProcess = shell.exec("npm run server &", {async: true});
-var serverProcess = child_process.spawn("npm run server");
+var serverProcess = child_process.spawn("npm", ["run", "server"]);
 app.post("/deploy", (req, res) => {
     var notTag = req.body.ref_type !== "tag";
     console.log(req.body.ref_type);
@@ -44,7 +44,7 @@ app.post("/deploy", (req, res) => {
     if (shell.exec("git pull").code === 0) {
         if (shell.exec("npm run build").code === 0) {
             serverProcess.kill();
-            serverProcess = child_process.spawn("npm run server");
+            serverProcess = child_process.spawn("npm", ["run", "server"]);
             res.sendStatus(200);
             return;
         } else {
