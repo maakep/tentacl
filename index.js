@@ -3,6 +3,7 @@ var http = require("http");
 var path = require("path");
 var bodyParser = require("body-parser");
 
+var child_process = require("child_process");
 var shell = require("shelljs");
 
 if (!shell.which('git')) {
@@ -22,7 +23,8 @@ app.get("/", (req, res) => {
 });
 
 shell.cd(process.argv[2]);
-var serverProcess = shell.exec("npm run server &", {async: true});
+//var serverProcess = shell.exec("npm run server &", {async: true});
+var serverProcess = child_process.spawn("npm run server");
 app.post("/deploy", (req, res) => {
     var notTag = req.body.ref_type !== "tag";
     console.log(req.body.ref_type);
@@ -39,10 +41,10 @@ app.post("/deploy", (req, res) => {
         return;
     }
 
-    serverProcess.kill();
     if (shell.exec("git pull").code === 0) {
         if (shell.exec("npm run build").code === 0) {
-            serverProcess = shell.exec("npm run server", {async: true});
+            serverProcess.kill();
+            serverProcess = child_process.spawn("npm run server");
             res.sendStatus(200);
             return;
         } else {
