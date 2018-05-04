@@ -41,9 +41,9 @@ app.post("/deploy", (req, res) => {
         return;
     }
 
+    serverProcess.kill();
     if (shell.exec("git pull").code === 0) {
         if (shell.exec("npm run build").code === 0) {
-            serverProcess.kill();
             serverProcess = child_process.spawn("npm", ["run", "server"]);
             res.sendStatus(200);
             return;
