@@ -5,6 +5,8 @@ var bodyParser = require("body-parser");
 
 var child_process = require("child_process");
 var shell = require("shelljs");
+
+// Dependencies
 if (!shell.which('git')) {
     shell.echo("Please install git.");
     shell.exit(1);
@@ -13,20 +15,26 @@ if (!shell.which('npm')) {
     shell.echo("Please install npm.");
     shell.exit(1);
 }
+// Navigate to project path specified in paramter
+shell.cd(process.argv[2]);
 
+// Declaration
+const port = 3001;
+var currentVersion = "v0.0.0";
+
+// Set up server
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 const server = http.createServer(app);
+server.listen(port, () => {
+    shell.echo("listening on *:" + port);
+});
 
-const port = 3001;
-var currentVersion = "v0.0.0";
-
+// Set up routing
 app.get("/", (req, res) => {
     res.sendStatus(401);
 });
-
-shell.cd(process.argv[2]);
 
 app.post("/deploy", (req, res) => {
     if (!validateBody(req.body)) {
@@ -34,34 +42,22 @@ app.post("/deploy", (req, res) => {
         res.sendStatus(400);
         return;
     }
-    let semanticVersionUpdate = getVersion(req.body.ref);
+    let semanticVersionUpdate = getVersionLevel(req.body.ref);
     shell.echo(semanticVersionUpdate);
 
-    var gitPull = pull();
-    var npmBuild = build();
-    serverProcess = getNewServer();
+    if (semanticVersionUpdate >= 1) {
+        var gitPull = pull();
+        if (semanticVersionUpdate >=  2) {
+            var npmBuild = build();
+        }
+        if (semanticVersionUpdate >= 3) {
+            serverProcess = getNewServer();
+        }
+    }
+
     currentVersion = req.body.ref;
     res.sendStatus(200);
     shell.echo("Done.");
-
-    /*shell.echo("Shutting down server...");
-    if (shell.exec("git pull").code === 0) {
-        if (shell.exec("npm run build", {silent:true}).code === 0) {
-            shell.echo("Build done, starting server... ");
-            serverProcess = child_process.spawn("npm", ["run", "server"], { detached: true });
-            currentVersion = req.body.ref;
-            res.sendStatus(200);
-            shell.echo("Done.");
-            return;
-        } else {
-            shell.echo("Build failed");
-            res.sendStatus(500);
-            return;
-        }
-    } else {
-        res.sendStatus(503);
-        return;
-    }*/
 });
 
 function validateBody(body) {
@@ -75,7 +71,7 @@ function validateBody(body) {
     return isTag && isRelease;
 }
 
-function getVersion(newVersion) {
+function getVersionLevel(newVersion) {
     newVersion = newVersion.substring(1);
     var versions = newVersion.split(".");
     var major = versions[0];
@@ -88,14 +84,14 @@ function getVersion(newVersion) {
     var oldMinor = oldVersions[1];
     var oldPatch = oldVersions[2];
 
-    if (oldMajor !== major) {
-        return "MAJOR";
+    if (major !== oldMajor) {
+        return 3;
     }
     if (minor !== oldMinor) {
-        return "MINOR";
+        return 2;
     }
     if (patch !== oldPatch) {
-        return "PATCH";
+        return 1;
     }
 
     return "No changes";
@@ -123,8 +119,4 @@ serverProcess.on("close", (code, signal) => {
 });
 serverProcess.stderr.on("data", (something) => {
     shell.echo("something stderr: " + something);
-});
-
-server.listen(port, () => {
-    shell.echo("listening on *:" + port);
 });
