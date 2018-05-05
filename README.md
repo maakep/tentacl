@@ -9,8 +9,11 @@ A tool for automatic building & deploying your npm-based project.
 
 ## Setting up
 
-Your Raspberry Pi
+
+Your device
+
   ├─ your-project
+
   └─ tentacl
 
 ## Running
