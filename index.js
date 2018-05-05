@@ -98,15 +98,18 @@ function getVersionLevel(newVersion) {
 }
 
 function pull() {
+    shell.echo("Pulling latest changes... ");
     return shell.exec("git pull");
 }
 
 function build() {
+    shell.echo("Building... ");
     return shell.exec("npm run build", { silent:true });
 }
 
 var serverProcess = getNewServer(true);
 function getNewServer(init = false) {
+    shell.echo("Restarting server... ");
     if (!init)
         process.kill(-serverProcess.pid);    
     return child_process.spawn("npm", ["run", "server"], { detached: true });
