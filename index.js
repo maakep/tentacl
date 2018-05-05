@@ -27,18 +27,6 @@ app.get("/", (req, res) => {
 });
 
 shell.cd(process.argv[2]);
-//var serverProcess = shell.exec("npm run server &", {async: true});
-var serverProcess = child_process.spawn("npm", ["run", "server"], { detached: true });
-serverProcess.on("error", (err) => {
-    shell.echo(err);
-});
-serverProcess.on("close", (code, signal) => {
-    shell.echo("close: " + code + " - " + signal);
-});
-
-serverProcess.stderr.on("data", (something) => {
-    shell.echo("something stderr: " + something);
-});
 
 app.post("/deploy", (req, res) => {
     if (!validateBody(req.body)) {
@@ -47,13 +35,16 @@ app.post("/deploy", (req, res) => {
         return;
     }
     let semanticVersionUpdate = getVersion(req.body.ref);
+    shell.echo(semanticVersionUpdate);
 
-    /*var pull = await pull();
-    var build = await build();*/
+    var gitPull = pull();
+    var npmBuild = build();
+    serverProcess = getNewServer();
+    currentVersion = req.body.ref;
+    res.sendStatus(200);
+    shell.echo("Done.");
 
-    shell.echo("Shutting down server...");
-    process.kill(-serverProcess.pid);
-    serverProcess.kill();
+    /*shell.echo("Shutting down server...");
     if (shell.exec("git pull").code === 0) {
         if (shell.exec("npm run build", {silent:true}).code === 0) {
             shell.echo("Build done, starting server... ");
@@ -70,11 +61,8 @@ app.post("/deploy", (req, res) => {
     } else {
         res.sendStatus(503);
         return;
-    }
-    // res.sendFile(path.join(__dirname, "../../" + req.url));
-    // git pull.then() npm run build.then() npm run server
+    }*/
 });
-
 
 function validateBody(body) {
     shell.echo(body);
@@ -113,13 +101,29 @@ function getVersion(newVersion) {
     return "No changes";
 }
 
-async function pull() {
+function pull() {
     return shell.exec("git pull");
 }
 
-async function build() {
-    return shell.exec("npm run build");
+function build() {
+    return shell.exec("npm run build", { silent:true });
 }
+
+var serverProcess = getNewServer(true);
+function getNewServer(init = false) {
+    if (!init)
+        process.kill(-serverProcess.pid);    
+    return child_process.spawn("npm", ["run", "server"], { detached: true });
+}
+serverProcess.on("error", (err) => {
+    shell.echo(err);
+});
+serverProcess.on("close", (code, signal) => {
+    shell.echo("close: " + code + " - " + signal);
+});
+serverProcess.stderr.on("data", (something) => {
+    shell.echo("something stderr: " + something);
+});
 
 server.listen(port, () => {
     shell.echo("listening on *:" + port);
