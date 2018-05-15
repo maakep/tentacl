@@ -104,6 +104,7 @@ function pull() {
 
 function build() {
     shell.echo("Building... ");
+    shell.exec("npm install", { silent:true });
     return shell.exec("npm run build", { silent:true });
 }
 
